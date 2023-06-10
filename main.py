@@ -12,6 +12,9 @@ from time import sleep
 # fix for pyinstaller
 import babel.numbers
 
+COLOR_EVENT_1_HEX = '#FFD16E'
+COLOR_EVENT_2_HEX = '#52DEBF'
+COLOR_EVENT_3_HEX = '#7A67F5'
 CALENDAR_FONT_SIZE = 20
 
 global selected_event_label
@@ -26,6 +29,7 @@ first_time: bool = True
 selected_event_type = 'Padrão'
 
 
+# this class modifies the tkcalendar, so it shows the events in the calendar squares, instead of in a pop-up
 class Agenda(Calendar):
 
     def __init__(self, master=None, **kw):
@@ -37,6 +41,7 @@ class Agenda(Calendar):
                 self._cal_frame.columnconfigure(j + 1, uniform=1)
                 label.configure(justify="center", anchor="n", padding=(1, 4))
 
+    # formats the text, so it fits in the calendar square(label with date inside the square)
     def format_calevent_text(self, ev_ids, label, date=None):
         text_from_calevents = [self.calevents[ev]['text'] for ev in ev_ids]
         text_calevents_string = ''
@@ -44,6 +49,7 @@ class Agenda(Calendar):
         label.configure(wraplength=label.winfo_width())
 
         # waits on a new thread for the labels to be loaded and then the events can be properly loaded
+        # (widgets sizes cant be measured before it loads)
         def reshow_event():
             if not date:
                 return False
@@ -163,14 +169,24 @@ class Agenda(Calendar):
 
 
 def main():
+    # this dict relates the labels objects and their event ids
+    # structure: event_id: label object(tkinter label)
     event_labels = {}
     # this dict relates one event to another, just like in a database
+    # structure: event_id: {'number': event_number, 'date': event_date(datetime)}
     event_id_and_associated_events_number: {int: (datetime, int)} = {}
+    # event ids from the events of type read book('ler livro') and the total number of pages of the book
+    # structure: event_id: total_pages
     read_book_event_ids_and_pages = {}
-    work_event_ids_and_hours = {}
+    # event ids from the events of type assignment('trabalho') and the total number of hours of the assignment
+    # structure: event_id: total_hours
+    assignment_event_ids_and_hours = {}
+    # list with the event dates and numbers
+    # structure: some number: {'number': event_number, 'date': event_date(datetime.date)}
     event_number_date_to_delete: [[int, datetime]] = []
 
-    # creates all main widgets(labels_frame and the widgets in it are created only once)
+    # creates all main widgets, the ones that appear when the software
+    # is opened(labels_frame and the widgets in it are created only once)
     def create_main_widgets():
         global first_time
         if first_time:
@@ -304,6 +320,7 @@ def main():
 
         first_time = False
 
+        # creates a new thread and waits for the widgets to load, so the sizes can be set correctly
         def set_labels_frame_winfo_width():
             global labels_frame_winfo_width
             while labels_frame.winfo_width() < 10:
@@ -325,12 +342,14 @@ def main():
             event_labels[key].destroy()
         event_labels.clear()
 
+    # gets the id from the event the label is referring to.
+    # It searches through the list of all event labels and their related event_ids
     def get_event_id_from_event_labels_list(label):
         for key in event_labels:
             if event_labels[key] == label:
                 return key
 
-    # removes the widgets in the menu of the event options, if they exist
+    # removes the widgets in the menu of the event options(panel with the buttons to remove the event), if they exist
     def remove_event_label_widgets():
         global event_label_selected
         event_label_selected = False
@@ -343,6 +362,7 @@ def main():
         if type(separator_event_frame) == Frame:
             separator_event_frame.destroy()
 
+    # creates the widgets that appear when you click on a label in the menu
     def create_event_label_widgets():
         global event_label_selected
         event_label_selected = True
@@ -370,30 +390,36 @@ def main():
                                      command=remove_event_and_related)
         remove_event_button.pack(side='top', expand=False, fill="x")
 
+    # get all the event_ids that are related to the event from the selected label. For example, if the user selects
+    # a label from a book reading event, its gets the event_ids from all the events that are from that same book
     def get_selected_label_related_events() -> [int]:
         event_id = get_event_id_from_event_labels_list(selected_event_label)
         event_number: int = event_id_and_associated_events_number[event_id]['number']
-        events_ids_related_to_event: [int] = get_events_related_to(event_id, event_number)
+        events_ids_related_to_event: [int] = get_events_related_to(event_number)
         return events_ids_related_to_event
 
-    # removes the event from that day and updates the other days with the new amount of pages
+    # removes the event and all the other events that are from the same book/assignment/default event
     def remove_event_and_related():
         events_ids_related_to_event = get_selected_label_related_events()
         for event_id in events_ids_related_to_event:
             remove_event(event_id)
 
-    def create_list_with_same_events_number(event_number: int) -> list:
+    # creates a list with all events that share the same event number
+    def create_list_with_same_events_number(event_number: int, events_list) -> list:
         list_of_events_with_same_number = []
-        for event in event_number_date_to_delete:
+        for event in events_list:
             if event['number'] == event_number:
                 list_of_events_with_same_number.append(event)
         return list_of_events_with_same_number
 
+    # splits the string correctly to get the event name written in the label with the book name and number of pages
     def get_event_book_name(label_text: str):
         words = label_text.split(' ')
         return words[3:]
 
-    def get_event_work_name(label_text: str):
+    # splits the string correctly to get the event name written in the label with the assignment
+    # name and number of pages
+    def get_event_assignment_name(label_text: str):
         words = label_text.split(' ')
         return words[4:]
 
@@ -401,11 +427,14 @@ def main():
         for event_id_deleted in event_number_date_to_delete:
             if event_number == event_id_deleted['number'] and event_date == event_id_deleted['date']:
                 return True
+        return False
 
     def place_event_in_events_to_delete_list(event_number: int, event_date: datetime.date):
         parameters = {'number': event_number, 'date': event_date}
         event_number_date_to_delete.append(parameters)
 
+    # gets the start and end dates, but also searches in the deleted events list,
+    # so it can get the original start and end dates(doesn't account for the specific event days the user deleted)
     def get_start_end_including_deleted_events(previous_start, previous_end, events_deleted_list: list):
         dates_list = []
         for date in get_dates(previous_start, previous_end):
@@ -417,40 +446,46 @@ def main():
         end = max(dates_list)
         return start, end
 
+    # deletes/removes all the events in the events to delete list
     def remove_events_in_events_to_delete_list_from_calendar():
         for event in event_number_date_to_delete:
             event_id = get_event_id_from_event_number_and_date(event['number'], event['date'])
             remove_event(event_id)
 
+    # deletes a specific day of the event, not all the dates,
+    # and redistributes the number of pages and hours to the remaining days
     def dont_do_event_in_selected_day():
         event_id = get_event_id_from_event_labels_list(selected_event_label)
         event_number = get_event_number_from_id(event_id)
-        events_ids_related_to_event = get_events_related_to(event_id, event_number)
+        events_ids_related_to_event = get_events_related_to(event_number)
         start, end = get_start_end_event_from(events_ids_related_to_event)
         event_label_text: str = selected_event_label.cget('text')
         event_date: datetime = get_event_date_from_id(event_id)
 
         event_id_is_in_list = is_event_in_events_to_delete_list(event_number, event_date)
 
+        # checks if the event the user clicked to delete is already in the events to delete list
         if not event_id_is_in_list:
             place_event_in_events_to_delete_list(event_number, event_date)
 
-        events_deleted_related_to_selected_event = create_list_with_same_events_number(event_number)
+        events_deleted_related_to_selected_event = create_list_with_same_events_number(event_number,
+                                                                                       event_number_date_to_delete)
         start, end = get_start_end_including_deleted_events(start, end, events_deleted_related_to_selected_event)
 
         days_less_total = len(events_deleted_related_to_selected_event)
 
         remove_event_and_related()
 
+        # handling of each event type
         if selected_event_type == EventTypes.LER_LIVRO.value:
             event_name = get_event_book_name(event_label_text)
             event_name = str.join(" ", event_name)
             total_pages = read_book_event_ids_and_pages[events_ids_related_to_event[0]]
             event_ler_livro(start, end, days_less_total, total_pages, event_name, True, event_number)
         elif selected_event_type == EventTypes.TRABALHO.value:
-            event_name = get_event_work_name(event_label_text)
+            event_name = get_event_assignment_name(event_label_text)
             event_name = str.join(" ", event_name)
-            total_hours = work_event_ids_and_hours[events_ids_related_to_event[0]]
+            total_hours = assignment_event_ids_and_hours[events_ids_related_to_event[0]]
             event_trabalho(start, end, event_name, days_less_total, event_number, total_hours)
         elif selected_event_type == EventTypes.PADRAO.value:
             event_name = event_label_text
@@ -458,10 +493,12 @@ def main():
 
         remove_events_in_events_to_delete_list_from_calendar()
 
+    # I added this function in case I want to add more functionalities to the button later
     def do_or_not_button_clicked():
         dont_do_event_in_selected_day()
 
-    # selects an event from the events list(in the side GUI, with the list of the events in the selected day)
+    # fires when the user selects an label from the
+    # events list(at the side GUI, with the list of the events in the selected day)
     def select_event_label(event):
         global selected_event_label
         global event_label_selected
@@ -477,6 +514,7 @@ def main():
         event_type_changed(event_tags[0])
         create_event_label_widgets()
 
+    # creates the labels with the name and text of each even in the selected day
     def create_event_labels_in_frame() -> None:
         agenda_selected_date = agenda.selection_get()
         event_ids = agenda.get_calevents(agenda_selected_date)
@@ -487,10 +525,12 @@ def main():
             label.bind("<Button-1>", select_event_label)
             event_labels[event_id] = label
 
+    # removes the event text(not the date) from the label inside the calendar squares
     def remove_event_text_from_label():
         text = day_label.cget('text')[:2]
         day_label.configure(text=text)
 
+    # removes an event from the events list and uses the calevent_remove function to remove it from the calendar
     def remove_event(event_id):
         agenda.calevent_remove(event_id)
         destroy_all_event_labels()
@@ -504,6 +544,7 @@ def main():
             pass
         agenda._display_days_without_othermonthdays()
 
+    # gets the start and end of an event given a list of dates that event is at.
     def get_start_end_event_from(event_ids: [int]) -> (datetime, datetime):
         start_date: datetime.date = agenda.calevent_cget(min(event_ids), 'date')
         end_date: datetime.date = agenda.calevent_cget(max(event_ids), 'date')
@@ -521,6 +562,7 @@ def main():
         return datetime(year=start_year, day=start_day, month=start_month), \
             datetime(year=end_year, day=end_day, month=end_month)
 
+    # calls the correct function for each event type
     def event_type_handler():
         event_type = event_types_var.get()
 
@@ -536,6 +578,7 @@ def main():
             event_trabalho(start, end)
             print('Trabalho')
 
+    # gets all dates in between a start and end date
     def get_dates(start: datetime, end: datetime):
         selected_day = start
         days_list = [start]
@@ -544,22 +587,27 @@ def main():
             days_list.append(selected_day)
         return days_list
 
-    def calculate_pages_per_day(start_date: datetime, end_date: datetime, total_pages: float) -> tuple[int, float]:
+    def calculate_pages_per_day(start_date: datetime | datetime_date, end_date: datetime | datetime_date,
+                                total_pages: float) -> tuple[int, float]:
         try:
             delta = end_date.date() - start_date.date()
         except AttributeError:
+            # this codes make so the start and end date can be a datetime.datetime object
             delta = end_date - start_date
         pages_per_day = int(math.ceil(total_pages / (delta.days + 1)))
         last_day_pages = int(total_pages - pages_per_day * delta.days)
         return pages_per_day, last_day_pages
 
-    def get_events_related_to(event_id: int, event_number: int) -> [int]:
+    # gets the events related to that one by comparing the event numbers and seeing if they are the same.
+    # It searches in the event ids list
+    def get_events_related_to(event_number: int) -> [int]:
         related_events_list = []
         for key, other_event in event_id_and_associated_events_number.items():
             if event_number == other_event['number']:
                 related_events_list.append(key)
         return related_events_list
 
+    # gets the event_id by comparing its event number and date and finding a match in the event ids list
     def get_event_id_from_event_number_and_date(event_number: int, date: datetime.date):
         for key, event in event_id_and_associated_events_number.items():
             if event['number'] == event_number and event['date'] == date:
@@ -571,6 +619,7 @@ def main():
     def get_event_date_from_id(event_id: int) -> datetime:
         return event_id_and_associated_events_number[event_id]['date']
 
+    # generates a random event number and checks if it is already used
     def generate_event_number():
         event_number = random.randint(1, 1000000000000000000000)
         try:
@@ -585,6 +634,7 @@ def main():
         event_date = agenda.calevent_cget(event_id, 'date')
         event_id_and_associated_events_number[event_id] = {'number': event_number, 'date': event_date}
 
+    # handles the creation of an event of the type "ler livro"(translation: read book)
     def event_ler_livro(start: datetime, end: datetime, days_less=0, total_pages_override=None,
                         event_name_override=None, can_read_more_pages_than_total=False, event_number=None):
         if not total_pages_override:
@@ -626,6 +676,7 @@ def main():
         hours_per_day = total_hours / (delta.days + 1)
         return hours_per_day
 
+    # handles the creation of an event of the type "padrão"(translation: default)
     def event_padrão(start, end, override_event_name: str = None, override_event_number: int = None):
         all_dates = get_dates(start, end)
         if override_event_name:
@@ -645,6 +696,7 @@ def main():
                 event_id = agenda.calevent_create(date, event_name, "padrão")
                 add_event_to_event_id_and_associated_events_dict(event_id, event_number)
 
+    # handles the creation of an event of the type "trabalho"(translation: assignment)
     def event_trabalho(start, end, override_event_name: str = None, days_less=0, override_event_number: int = None,
                        total_hours_override: int = None):
         if override_event_name:
@@ -668,25 +720,27 @@ def main():
                                               "trabalhar " + str(
                                                   round(hours_per_day, 2)) + " horas em " + event_name,
                                               "trabalho")
-            work_event_ids_and_hours[event_id] = total_hours
+            assignment_event_ids_and_hours[event_id] = total_hours
             add_event_to_event_id_and_associated_events_dict(event_id, event_number)
 
+    # updates the UI text when the event type changes
     def event_type_changed(event_type):
         global selected_event_type
-        if event_type == EventTypes.LER_LIVRO.value or event_type == 'ler_livro':
+        if event_type == EventTypes.LER_LIVRO.value or event_type == 'ler_livro':  # 'ler_livro' = read book
             selected_event_type = EventTypes.LER_LIVRO.value
-            pages_hours_label_var.set('Páginas Totais:')
-            event_name_label.configure(text='Nome do livro')
+            pages_hours_label_var.set('Páginas Totais:')  # 'Páginas Totais' = total pages
+            event_name_label.configure(text='Nome do livro')  # 'Nome do livro' = book name
             # do_or_not_event_button["state"] = "enabled"
-        elif event_type == EventTypes.TRABALHO.value or event_type == 'trabalho':
+        elif event_type == EventTypes.TRABALHO.value or event_type == 'trabalho':  # trabalho = assignment
             selected_event_type = EventTypes.TRABALHO.value
-            pages_hours_label_var.set('Horas Totais:')
+            pages_hours_label_var.set('Horas Totais:')  # 'Horas Totais' = total hours
             # do_or_not_event_button["state"] = "enabled"
-        elif event_type == EventTypes.PADRAO.value:
-            selected_event_type = EventTypes.PADRAO.value or event_type == 'padrão'
-            pages_hours_label_var.set('Horas Totais:')
+        elif event_type == EventTypes.PADRAO.value or event_type == 'padrão':  # padrão = default
+            selected_event_type = EventTypes.PADRAO.value
+            pages_hours_label_var.set('Horas Totais:')  # 'Horas Totais' = total hours
             # do_or_not_event_button["state"] = "disabled"
 
+    # updates the GUI and sets the start date as the selected day's date
     def clicked_day_handler(_event) -> None:
         remove_event_label_widgets()
         destroy_main_widgets()
@@ -696,15 +750,17 @@ def main():
         destroy_all_event_labels()
         create_event_labels_in_frame()
 
+    # handles the add event button("Adicionar evento = add/create event)
     def add_event_pressed_handler() -> None:
         event_type_handler()
         destroy_all_event_labels()
         create_event_labels_in_frame()
 
+    # enums:
     class EventTypes(Enum):
-        LER_LIVRO = 'Ler livro'
-        PADRAO = 'Padrão'
-        TRABALHO = 'Trabalho'
+        LER_LIVRO = 'Ler livro'  # ler livro = read book
+        PADRAO = 'Padrão'  # Padrão = default
+        TRABALHO = 'Trabalho'  # trabalho = assignment
 
     # Configuring the root window
     root = Tk()
@@ -725,9 +781,10 @@ def main():
 
     create_main_widgets()
 
-    agenda.tag_config("padrão", background='#FFD16E')
-    agenda.tag_config("ler_livro", background='#52DEBF')
-    agenda.tag_config("trabalho", background='#7A67F5')
+    # tags and their colors(HEX)
+    agenda.tag_config("padrão", background=COLOR_EVENT_1_HEX)
+    agenda.tag_config("ler_livro", background=COLOR_EVENT_2_HEX)
+    agenda.tag_config("trabalho", background=COLOR_EVENT_3_HEX)
 
     agenda.bind("<<CalendarSelected>>", clicked_day_handler)
 
