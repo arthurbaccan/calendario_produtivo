@@ -497,7 +497,7 @@ def main():
     def do_or_not_button_clicked():
         dont_do_event_in_selected_day()
 
-    # fires when the user selects an label from the
+    # fires when the user selects a label from the
     # events list(at the side GUI, with the list of the events in the selected day)
     def select_event_label(event):
         global selected_event_label
@@ -750,7 +750,7 @@ def main():
         destroy_all_event_labels()
         create_event_labels_in_frame()
 
-    # handles the add event button("Adicionar evento = add/create event)
+    # handles the add event button("Adicionar evento = add/create event")
     def add_event_pressed_handler() -> None:
         event_type_handler()
         destroy_all_event_labels()
