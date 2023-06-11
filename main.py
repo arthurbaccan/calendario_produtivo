@@ -8,7 +8,8 @@ from tkinter import ttk
 from enum import Enum
 from datetime import datetime, timedelta
 from threading import Thread
-from time import sleep
+from time import sleep, time
+from functools import cache
 # fix for pyinstaller
 import babel.numbers
 
@@ -409,7 +410,7 @@ def main():
         list_of_events_with_same_number = []
         for event in events_list:
             if event['number'] == event_number:
-                list_of_events_with_same_number.append(event)
+                list_of_events_with_same_number += event,
         return list_of_events_with_same_number
 
     # splits the string correctly to get the event name written in the label with the book name and number of pages
@@ -437,16 +438,18 @@ def main():
     # so it can get the original start and end dates(doesn't account for the specific event days the user deleted)
     def get_start_end_including_deleted_events(previous_start, previous_end, events_deleted_list: list):
         dates_list = []
+
         for date in get_dates(previous_start, previous_end):
-            dates_list.append(date)
+            dates_list += date,
 
         for event in events_deleted_list:
-            dates_list.append(event['date'])
+            dates_list += event['date'],
         start = min(dates_list)
         end = max(dates_list)
         return start, end
 
     # deletes/removes all the events in the events to delete list
+    @cache
     def remove_events_in_events_to_delete_list_from_calendar():
         for event in event_number_date_to_delete:
             event_id = get_event_id_from_event_number_and_date(event['number'], event['date'])
@@ -467,14 +470,14 @@ def main():
         # checks if the event the user clicked to delete is already in the events to delete list
         if not event_id_is_in_list:
             place_event_in_events_to_delete_list(event_number, event_date)
-
         events_deleted_related_to_selected_event = create_list_with_same_events_number(event_number,
                                                                                        event_number_date_to_delete)
+
         start, end = get_start_end_including_deleted_events(start, end, events_deleted_related_to_selected_event)
 
         days_less_total = len(events_deleted_related_to_selected_event)
-
         remove_event_and_related()
+
 
         # handling of each event type
         if selected_event_type == EventTypes.LER_LIVRO.value:
