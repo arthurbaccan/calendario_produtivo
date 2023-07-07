@@ -13,6 +13,14 @@ from functools import cache
 # fix for pyinstaller
 import babel.numbers
 
+
+class Languages(Enum):
+    PT_BR = 'PT-BR'
+    EN_US = 'EN-US'
+
+
+# Configs:
+SELECTED_LANGUAGE = Languages.EN_US
 COLOR_EVENT_1_HEX = '#FFD16E'
 COLOR_EVENT_2_HEX = '#52DEBF'
 COLOR_EVENT_3_HEX = '#7A67F5'
@@ -170,6 +178,17 @@ class Agenda(Calendar):
 
 
 def main():
+    text_by_language = {
+        Languages.EN_US: ['Events', 'Event name:', 'Event type:', 'Event Timespan:', 'Start:', 'End:',
+                          'Total Duration(Hours):', 'Create event', 'Remove event in selected day', 'Remove event',
+                          'Read ', ' pages ', 'Work ', ' hours on ', 'Total Pages:', "Book's Name:", 'Language:'],
+        Languages.PT_BR: ['Eventos', 'Nome do evento:', 'Tipo de evento:', 'Duração do evento:', 'Início:',
+                          'Fim:', 'Horas Totais:', 'Criar evento', 'Remover evento nesse dia', 'Remover evento',
+                          'Ler ', ' páginas ', 'Trabalhar ', ' horas em ', 'Páginas Totais:', 'Nome do Livro:',
+                          'Língua']
+
+    }
+
     # this dict relates the labels objects and their event ids
     # structure: event_id: label object(tkinter label)
     event_labels = {}
@@ -252,10 +271,11 @@ def main():
         # Widgets in order of appearance(top to bottom, mostly; same as the frames)
         if first_time:
             event_description_label = ttk.Label(labels_frame, justify='center', anchor='center', font='Arial 30',
-                                                text='Eventos:')
+                                                text=text_by_language[SELECTED_LANGUAGE][0])
             event_description_label.pack(expand=False, fill='x', side='top', pady=20)
 
-        event_name_label = ttk.Label(entries_frame, text='Nome do evento:', font='Arial 15', justify='center',
+        event_name_label = ttk.Label(entries_frame, text=text_by_language[SELECTED_LANGUAGE][1], font='Arial 15',
+                                     justify='center',
                                      anchor='center')
         event_name_label.pack(expand=False, fill='x', side='top')
         main_widgets_list.append(event_name_label)
@@ -264,13 +284,14 @@ def main():
         event_name_entry.pack(expand=False, fill='both', side='top')
         main_widgets_list.append(event_name_entry)
 
-        event_type_label = ttk.Label(event_type_option_menu_frame, text='Tipo de evento:', font='Arial 15',
+        event_type_label = ttk.Label(event_type_option_menu_frame, text=text_by_language[SELECTED_LANGUAGE][2],
+                                     font='Arial 15',
                                      justify='center', anchor='center')
         event_type_label.pack(expand=False, fill='x', side='top')
         main_widgets_list.append(event_type_label)
 
         # event type var
-        event_types_var = StringVar(event_type_option_menu_frame, 'Padrão')
+        event_types_var = StringVar(event_type_option_menu_frame, EventTypes.PADRAO.value)
         event_types_list = [EventTypes.PADRAO.value, EventTypes.LER_LIVRO.value, EventTypes.TRABALHO.value]
 
         event_type_option_menu = OptionMenu(event_type_option_menu_frame, event_types_var, *event_types_list,
@@ -278,34 +299,41 @@ def main():
         event_type_option_menu.pack(expand=False, side='top')
         main_widgets_list.append(event_type_option_menu)
 
-        event_duration_label = Label(start_end_event_frame, text='Duração do evento:', font='Arial 15',
+        event_duration_label = Label(start_end_event_frame, text=text_by_language[SELECTED_LANGUAGE][3],
+                                     font='Arial 15',
                                      justify='center', anchor='center')
         event_duration_label.pack(expand=False, fill='x', side='top')
         main_widgets_list.append(event_duration_label)
 
-        event_start_label = Label(start_end_event_frame, text='Início:', font='Arial 15',
+        event_start_label = Label(start_end_event_frame, text=text_by_language[SELECTED_LANGUAGE][4], font='Arial 15',
                                   justify='center', anchor='center')
         event_start_label.pack(expand=False, fill='x', side='top')
         main_widgets_list.append(event_start_label)
 
-        start_event_var = StringVar(start_end_event_frame, datetime.now().strftime("%d/%m/%Y"))
+        if SELECTED_LANGUAGE == Languages.PT_BR:
+            start_event_var = StringVar(start_end_event_frame, datetime.now().strftime("%d/%m/%Y"))
+        elif SELECTED_LANGUAGE == Languages.EN_US:
+            start_event_var = StringVar(start_end_event_frame, datetime.now().strftime("%m/%d/%Y"))
 
         event_start_entry = ttk.Entry(start_end_event_frame, textvariable=start_event_var)
         event_start_entry.pack(expand=False, fill='both', side='top')
         main_widgets_list.append(event_start_entry)
 
-        event_finish_label = Label(start_end_event_frame, text='Fim:', font='Arial 15',
+        event_finish_label = Label(start_end_event_frame, text=text_by_language[SELECTED_LANGUAGE][5], font='Arial 15',
                                    justify='center', anchor='center')
         event_finish_label.pack(expand=False, fill='x', side='top')
         main_widgets_list.append(event_finish_label)
 
-        end_event_var = StringVar(start_end_event_frame, datetime.now().strftime("%d/%m/%Y"))
+        if SELECTED_LANGUAGE == Languages.PT_BR:
+            end_event_var = StringVar(start_end_event_frame, datetime.now().strftime("%d/%m/%Y"))
+        if SELECTED_LANGUAGE == Languages.EN_US:
+            end_event_var = StringVar(start_end_event_frame, datetime.now().strftime("%m/%d/%Y"))
 
         event_end_entry = ttk.Entry(start_end_event_frame, textvariable=end_event_var)
         event_end_entry.pack(expand=False, fill='both', side='top')
         main_widgets_list.append(event_end_entry)
 
-        pages_hours_label_var = StringVar(pages_hours_total_frame, "Horas Totais")
+        pages_hours_label_var = StringVar(pages_hours_total_frame, text_by_language[SELECTED_LANGUAGE][6])
         pages_hours_total_label = ttk.Label(pages_hours_total_frame, font='Arial 15',
                                             justify='center', anchor='center', textvariable=pages_hours_label_var)
         pages_hours_total_label.pack(expand=False, fill='x', side='top')
@@ -315,7 +343,8 @@ def main():
         pages_hours_total_entry.pack(expand=False, fill='both', side='top')
         main_widgets_list.append(pages_hours_total_entry)
 
-        add_event_button = ttk.Button(buttons_frame, text='Criar evento', command=add_event_pressed_handler)
+        add_event_button = ttk.Button(buttons_frame, text=text_by_language[SELECTED_LANGUAGE][7],
+                                      command=add_event_pressed_handler)
         add_event_button.pack(expand=False, fill='x', side='top')
         main_widgets_list.append(add_event_button)
 
@@ -387,7 +416,7 @@ def main():
                                         command=do_or_not_button_clicked)
         do_or_not_event_button.pack(expand=False, fill='x', side='top')
 
-        remove_event_button = Button(event_buttons_frame, text='Remover evento', background='Red',
+        remove_event_button = Button(event_buttons_frame, text=text_by_language[SELECTED_LANGUAGE][9], background='Red',
                                      command=remove_event_and_related)
         remove_event_button.pack(side='top', expand=False, fill="x")
 
@@ -478,7 +507,6 @@ def main():
         days_less_total = len(events_deleted_related_to_selected_event)
         remove_event_and_related()
 
-
         # handling of each event type
         if selected_event_type == EventTypes.LER_LIVRO.value:
             event_name = get_event_book_name(event_label_text)
@@ -555,15 +583,25 @@ def main():
 
     def get_start_end_event_from_event_date_var_text() -> tuple[datetime, datetime]:
         start_date_string = start_event_var.get()
-        start_year = int(start_date_string[6:])
-        start_month = int(start_date_string[3:5])
-        start_day = int(start_date_string[0:2])
         end_date_string = end_event_var.get()
-        end_year = int(end_date_string[6:])
-        end_month = int(end_date_string[3:5])
-        end_day = int(end_date_string[0:2])
-        return datetime(year=start_year, day=start_day, month=start_month), \
-            datetime(year=end_year, day=end_day, month=end_month)
+        if SELECTED_LANGUAGE == Languages.PT_BR:
+            start_year = int(start_date_string[6:])
+            start_month = int(start_date_string[3:5])
+            start_day = int(start_date_string[0:2])
+            end_year = int(end_date_string[6:])
+            end_month = int(end_date_string[3:5])
+            end_day = int(end_date_string[0:2])
+            return datetime(year=start_year, day=start_day, month=start_month), \
+                datetime(year=end_year, day=end_day, month=end_month)
+        elif SELECTED_LANGUAGE == Languages.EN_US:
+            start_year = int(start_date_string[6:])
+            start_day = int(start_date_string[3:5])
+            start_month = int(start_date_string[0:2])
+            end_year = int(end_date_string[6:])
+            end_day = int(end_date_string[3:5])
+            end_month = int(end_date_string[0:2])
+            return datetime(year=start_year, day=start_day, month=start_month), \
+                datetime(year=end_year, day=end_day, month=end_month)
 
     # calls the correct function for each event type
     def event_type_handler():
@@ -573,13 +611,10 @@ def main():
 
         if event_type == EventTypes.LER_LIVRO.value:
             event_ler_livro(start, end)
-            print('Vai ler livro')
         elif event_type == EventTypes.PADRAO.value:
             event_padrão(start, end)
-            print('Padrão')
         elif event_type == EventTypes.TRABALHO.value:
             event_trabalho(start, end)
-            print('Trabalho')
 
     # gets all dates in between a start and end date
     def get_dates(start: datetime, end: datetime):
@@ -658,13 +693,15 @@ def main():
         for date in all_dates:
             if not date == all_dates[len(all_dates) - 1]:
                 event_id = agenda.calevent_create(date,
-                                                  "ler " + str(pages_per_day) + " páginas " + event_name,
+                                                  text_by_language[SELECTED_LANGUAGE][10] + str(pages_per_day) +
+                                                  text_by_language[SELECTED_LANGUAGE][11] + event_name,
                                                   "ler_livro")
                 read_book_event_ids_and_pages[event_id] = total_pages
                 add_event_to_event_id_and_associated_events_dict(event_id, event_number)
             else:
                 event_id = agenda.calevent_create(date,
-                                                  "ler " + str(last_day_pages) + " páginas " + event_name,
+                                                  text_by_language[SELECTED_LANGUAGE][10] + str(last_day_pages) +
+                                                  text_by_language[SELECTED_LANGUAGE][11] + event_name,
                                                   "ler_livro")
                 add_event_to_event_id_and_associated_events_dict(event_id, event_number)
             pages_read += pages_per_day
@@ -720,9 +757,9 @@ def main():
 
         for date in all_dates:
             event_id = agenda.calevent_create(date,
-                                              "trabalhar " + str(
-                                                  round(hours_per_day, 2)) + " horas em " + event_name,
-                                              "trabalho")
+                                              text_by_language[SELECTED_LANGUAGE][12] + str(
+                                                  round(hours_per_day, 2)) + text_by_language[SELECTED_LANGUAGE][13]
+                                              + event_name, "trabalho")
             assignment_event_ids_and_hours[event_id] = total_hours
             add_event_to_event_id_and_associated_events_dict(event_id, event_number)
 
@@ -731,16 +768,18 @@ def main():
         global selected_event_type
         if event_type == EventTypes.LER_LIVRO.value or event_type == 'ler_livro':  # 'ler_livro' = read book
             selected_event_type = EventTypes.LER_LIVRO.value
-            pages_hours_label_var.set('Páginas Totais:')  # 'Páginas Totais' = total pages
-            event_name_label.configure(text='Nome do livro')  # 'Nome do livro' = book name
+            pages_hours_label_var.set(text_by_language[SELECTED_LANGUAGE][14])  # 'Páginas Totais' = total pages
+            event_name_label.configure(text=text_by_language[SELECTED_LANGUAGE][15])  # 'Nome do livro' = book name
             # do_or_not_event_button["state"] = "enabled"
         elif event_type == EventTypes.TRABALHO.value or event_type == 'trabalho':  # trabalho = assignment
             selected_event_type = EventTypes.TRABALHO.value
-            pages_hours_label_var.set('Horas Totais:')  # 'Horas Totais' = total hours
+            pages_hours_label_var.set(text_by_language[SELECTED_LANGUAGE][6])  # 'Horas Totais' = total hours
+            event_name_label.configure(text=text_by_language[SELECTED_LANGUAGE][1])
             # do_or_not_event_button["state"] = "enabled"
         elif event_type == EventTypes.PADRAO.value or event_type == 'padrão':  # padrão = default
             selected_event_type = EventTypes.PADRAO.value
-            pages_hours_label_var.set('Horas Totais:')  # 'Horas Totais' = total hours
+            pages_hours_label_var.set(text_by_language[SELECTED_LANGUAGE][6])
+            event_name_label.configure(text=text_by_language[SELECTED_LANGUAGE][1])  # 'Horas Totais' = total hours
             # do_or_not_event_button["state"] = "disabled"
 
     # updates the GUI and sets the start date as the selected day's date
@@ -748,7 +787,10 @@ def main():
         remove_event_label_widgets()
         destroy_main_widgets()
         create_main_widgets()
-        start_event_var.set(agenda.selection_get().strftime("%d/%m/%Y"))
+        if SELECTED_LANGUAGE == Languages.PT_BR:
+            start_event_var.set(agenda.selection_get().strftime("%d/%m/%Y"))
+        elif SELECTED_LANGUAGE == Languages.EN_US:
+            start_event_var.set(agenda.selection_get().strftime("%m/%d/%Y"))
         get_start_end_event_from_event_date_var_text()
         destroy_all_event_labels()
         create_event_labels_in_frame()
@@ -759,11 +801,15 @@ def main():
         destroy_all_event_labels()
         create_event_labels_in_frame()
 
-    # enums:
     class EventTypes(Enum):
-        LER_LIVRO = 'Ler livro'  # ler livro = read book
-        PADRAO = 'Padrão'  # Padrão = default
-        TRABALHO = 'Trabalho'  # trabalho = assignment
+        if SELECTED_LANGUAGE == Languages.PT_BR:
+            LER_LIVRO = 'Ler livro'  # ler livro = read book
+            PADRAO = 'Padrão'  # Padrão = default
+            TRABALHO = 'Trabalho'  # trabalho = assignment
+        elif SELECTED_LANGUAGE == Languages.EN_US:
+            LER_LIVRO = 'Read book'
+            PADRAO = 'Default'
+            TRABALHO = 'Assignment'
 
     # Configuring the root window
     root = Tk()
@@ -771,8 +817,12 @@ def main():
 
     root.title('Calendário Produtivo')
 
-    agenda = Agenda(root, selectmode='day', font="Arial 20", showweeknumbers=False, showothermonthdays=False,
-                    locale="pt_BR", background='black')
+    if SELECTED_LANGUAGE == Languages.PT_BR:
+        agenda = Agenda(root, selectmode='day', font="Arial 20", showweeknumbers=False, showothermonthdays=False,
+                        locale="pt_BR", background='black')
+    elif SELECTED_LANGUAGE == Languages.EN_US:
+        agenda = Agenda(root, selectmode='day', font="Arial 20", showweeknumbers=False, showothermonthdays=False,
+                        locale="en_US", background='black')
     agenda.pack(expand=True, fill="both", side='left')
 
     # All the widgets from the side menu are parented to the frame
@@ -780,7 +830,7 @@ def main():
     frame.pack_propagate(False)
     frame.pack(expand=False, fill='y', side='right')
 
-    event_do_or_not_button_text = StringVar(frame, "Remover evento esse dia")
+    event_do_or_not_button_text = StringVar(frame, text_by_language[SELECTED_LANGUAGE][8])
 
     create_main_widgets()
 
